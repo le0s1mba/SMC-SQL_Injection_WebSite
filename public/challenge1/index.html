@@ -128,11 +128,11 @@ router.post('/api/challenge1/login', async (req, res) => {
                 const data = await response.json();
                 
                 resultArea.style.display = 'block';
-                if (data.success && data.flag) {
+                if (data.success && data.user && data.user.role === 'admin') {
                     document.getElementById('flag-container').style.display = 'block';
-                    document.getElementById('flag-text').textContent = data.flag;
+                    document.getElementById('flag-text').textContent = '로그인 성공!';
                     resultContent.innerHTML = `
-                        <div style='color:#00bb77;font-weight:bold;margin-bottom:15px;'>🎉 관리자 로그인 성공! SQL Injection이 성공했습니다.</div>
+                        <div style='color:#00bb77;font-weight:bold;margin-bottom:15px;'>🎉 로그인 성공! SQL Injection이 성공했습니다.</div>
                         <div style='background:#f8faff;padding:15px;border-radius:5px;margin-bottom:15px;'>
                             <h4 style='color:#5409DA;margin:0 0 10px 0;'>로그인된 사용자 정보:</h4>
                             <pre style='color:#333;margin:0;'>${JSON.stringify(data.user, null, 2)}</pre>
@@ -140,7 +140,7 @@ router.post('/api/challenge1/login', async (req, res) => {
                     `;
                 } else if (data.success) {
                     resultContent.innerHTML = `
-                        <div style='color:#ffaa00;font-weight:bold;margin-bottom:15px;'>⚠️ 로그인은 성공했지만 관리자 계정이 아닙니다.</div>
+                        <div style='color:#ffaa00;font-weight:bold;margin-bottom:15px;'>🎉 로그인 성공! SQL Injection이 성공했습니다.</div>
                         <div style='background:#f8faff;padding:15px;border-radius:5px;margin-bottom:15px;'>
                             <h4 style='color:#5409DA;margin:0 0 10px 0;'>로그인된 사용자 정보:</h4>
                             <pre style='color:#333;margin:0;'>${JSON.stringify(data.user, null, 2)}</pre>
