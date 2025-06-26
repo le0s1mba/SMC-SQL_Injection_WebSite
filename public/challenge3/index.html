@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Injection - 데이터베이스 정보</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        .challenge-container { max-width: 600px; margin: 0 auto; }
+        .challenge-box { background: #fff; border-radius: 18px; box-shadow: 0 4px 24px 0 rgba(84,9,218,0.10); padding: 36px 32px 32px 32px; margin-top: 32px; }
+        .challenge-title { font-size: 1.3rem; font-weight: 800; color: #5409DA; margin-bottom: 18px; text-align: center; }
+        .form-label { color: #4E71FF; font-weight: 600; margin-bottom: 6px; }
+        .form-input { width: 100%; padding: 14px; border: 2px solid #8DD8FF; border-radius: 8px; font-size: 1rem; margin-bottom: 16px; background: #f8faff; color: #5409DA; transition: border 0.2s, box-shadow 0.2s; }
+        .form-input:focus { border-color: #5409DA; outline: none; box-shadow: 0 0 0 2px #8DD8FF; }
+        .action-btn { background: #5409DA; color: #fff; border: none; border-radius: 8px; padding: 14px 0; font-size: 1.1rem; font-weight: 700; width: 100%; cursor: pointer; transition: background 0.2s, transform 0.2s; margin-top: 8px; }
+        .action-btn:hover { background: #4E71FF; transform: translateY(-2px) scale(1.03); }
+        .result-area { margin-top: 20px; background: #f3f7ff; border-radius: 8px; padding: 18px 16px; color: #5409DA; box-shadow: 0 2px 8px 0 #8DD8FF22; display: none; }
+        .flag-container { background: #5409DA; color: #fff; border-radius: 12px; margin: 32px 0 0 0; padding: 24px 0; text-align: center; font-size: 1.3rem; font-weight: 700; letter-spacing: 1px; box-shadow: 0 4px 24px 0 #5409DA22; }
+        .flag { font-size: 1.2rem; color: #fff; background: #4E71FF; border-radius: 8px; padding: 10px 18px; margin-top: 12px; display: inline-block; }
+        .source-btn { margin: 32px auto 0 auto; display: block; background: #fff; color: #5409DA; border: 2px solid #5409DA; border-radius: 8px; font-weight: 700; font-size: 1rem; padding: 10px 28px; cursor: pointer; transition: background 0.2s, color 0.2s, border 0.2s; }
+        .source-btn:hover { background: #5409DA; color: #fff; }
+        .modal-bg { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(30, 20, 60, 0.75); justify-content: center; align-items: center; }
+        .modal-bg.active { display: flex; }
+        .modal { background: #181c2f; color: #fff; border-radius: 14px; max-width: 90vw; width: 540px; max-height: 80vh; overflow: auto; box-shadow: 0 8px 32px 0 #5409DA55; padding: 32px 24px 24px 24px; position: relative; }
+        .modal-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 18px; color: #8DD8FF; }
+        .modal-close { position: absolute; top: 18px; right: 18px; background: none; border: none; color: #8DD8FF; font-size: 1.5rem; cursor: pointer; }
+        pre.code-block { background: #23263a; color: #8DD8FF; border-radius: 8px; padding: 18px 12px; font-size: 0.98rem; font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace; overflow-x: auto; margin: 0; }
+        .hint { background: #f8faff; border-left: 4px solid #5409DA; padding: 16px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+        .hint h4 { color: #5409DA; margin: 0 0 8px 0; }
+        .hint p { margin: 0; color: #666; }
+    </style>
+</head>
+<body>
+    <nav class="main-nav">
+        <div class="nav-inner">
+            <div class="nav-logo">🗄️ SQL Injection CTF</div>
+            <div class="nav-actions">
+                <a href="../index.html" class="back-btn" style="color: #fff;">← 메인으로</a>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <header>
+            <h1 style="color: #fff;">SQL Injection - 데이터베이스 정보</h1>
+            <p style="color: #fff;">취약한 쿼리 입력을 통해 스키마 정보를 추출해보세요.</p>
+        </header>
+
+        <div class="challenge-container">
+            <div class="challenge-box">
+                <div class="challenge-title">스키마 정보 조회</div>
+                <form id="queryForm">
+                    <label for="query" class="form-label">SQL 쿼리</label>
+                    <textarea id="query" class="form-input" style="height:100px;resize:vertical;" placeholder="SQL Injection 페이로드를 입력하세요..."></textarea>
+                    <button type="submit" class="action-btn">쿼리 실행</button>
+                </form>
+                <div id="queryResult" class="result-area">
+                    <h3>실행 결과</h3>
+                    <div id="queryContent"></div>
+                </div>
+            </div>
+        </div>
+
+        <button class="source-btn" id="showSourceBtn">소스코드 보기</button>
+        
+        <div class="modal-bg" id="modalBg">
+            <div class="modal">
+                <button class="modal-close" id="closeModalBtn">&times;</button>
+                <div class="modal-title">문제 소스코드 (Node.js/Express)</div>
+                <pre class="code-block">// 취약한 쿼리 실행
+router.post('/api/challenge3/schema', async (req, res) => {
+    const { query } = req.body;
+    let conn;
+    try {
+        conn = await pool.getConnection();
+        const [results] = await conn.query(query);
+        
+        // information_schema 접근 시도 감지
+        if (query.toLowerCase().includes('information_schema') && results.length > 0) {
+            res.json({ 
+                success: true, 
+                results: results,
+                flag: 'FLAG{SQLi_Schema_Extraction_2024}'
+            });
+        } else {
+            res.json({ success: true, results });
+        }
+    } catch (err) {
+        res.json({ success: false, message: 'SQL 오류: ' + err.message });
+    } finally {
+        if (conn) conn.release();
+    }
+});</pre>
+            </div>
+        </div>
+
+        <div id="flag-container" class="flag-container" style="display: none;">
+            <h2>🎉 성공!</h2>
+            <div class="flag">
+                <span id="flag-text"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('queryForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const query = document.getElementById('query').value;
+            const resultArea = document.getElementById('queryResult');
+            const resultContent = document.getElementById('queryContent');
+            
+            try {
+                const response = await fetch('/api/challenge3/schema', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+                const data = await response.json();
+                
+                resultArea.style.display = 'block';
+                if (data.clearMessage) {
+                    document.getElementById('flag-container').style.display = 'block';
+                    document.getElementById('flag-text').textContent = data.clearMessage;
+                    resultContent.innerHTML = `
+                        <div style='color:#00bb77;font-weight:bold;margin-bottom:15px;'>🎉 ${data.clearMessage}</div>
+                    `;
+                }
+                
+                if (data.results) {
+                    let html = '';
+                    if (Array.isArray(data.results)) {
+                        if (data.results.length > 0) {
+                            html = data.results.map(row =>
+                                `<div>${Object.entries(row).map(([k, v]) => `<b>${k}</b>: ${v}`).join(', ')}</div>`
+                            ).join('');
+                        }
+                    } else if (typeof data.results === 'object') {
+                        html = `<div>${Object.entries(data.results).map(([k, v]) => `<b>${k}</b>: ${v}`).join(', ')}</div>`;
+                    } else {
+                        html = `<div>${data.results}</div>`;
+                    }
+                    resultContent.innerHTML = html;
+                } else {
+                    resultContent.innerHTML = '';
+                }
+            } catch (error) {
+                resultArea.style.display = 'block';
+                resultContent.innerHTML = `<div style='color:#ff4444;font-weight:bold;'>❌ 쿼리 실행 중 오류가 발생했습니다.</div>`;
+            }
+        });
+
+        // 소스코드 모달
+        const showSourceBtn = document.getElementById('showSourceBtn');
+        const modalBg = document.getElementById('modalBg');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        showSourceBtn.onclick = () => { modalBg.classList.add('active'); };
+        closeModalBtn.onclick = () => { modalBg.classList.remove('active'); };
+        modalBg.onclick = (e) => { if (e.target === modalBg) modalBg.classList.remove('active'); };
+    </script>
+</body>
+</html> 

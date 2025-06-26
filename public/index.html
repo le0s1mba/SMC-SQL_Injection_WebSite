@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Injection Lab</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- 네비게이션 -->
+    <nav class="main-nav">
+        <div class="nav-inner">
+            <div class="nav-logo">
+                <i class="fas fa-database"></i> SQL Injection Lab
+            </div>
+            <div class="nav-actions">
+                <button id="themeToggle" class="theme-toggle" title="다크/라이트 모드 전환">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <span class="nav-user"><i class="fas fa-user-secret"></i> 해커</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 히어로 섹션 -->
+    <section class="hero">
+        <h1>SQL Injection <span class="hero-gradient">공격 실습</span></h1>
+        <p>안전한 환경에서 <b>SQL Injection</b> 공격을 실습해보세요.<br>각 문제를 해결하여 플래그를 획득하세요!</p>
+        <div class="hero-warning">
+            <i class="fas fa-exclamation-triangle"></i> 이 사이트는 교육 목적으로만 사용됩니다.
+        </div>
+    </section>
+
+    <main class="main-layout">
+        <!-- 문제 카드 그리드 -->
+        <section class="challenge-grid-section" id="challengeGrid">
+            <h2><i class="fas fa-list"></i> SQL Injection 문제 목록</h2>
+            <div class="challenge-grid">
+                <div class="challenge-card" onclick="location.href='challenge1/'">
+                    <div class="card-icon"><i class="fas fa-user-shield"></i></div>
+                    <div class="card-title">기본 로그인 우회</div>
+                    <div class="card-desc">로그인 페이지에서 SQL Injection을 통해 관리자 계정으로 로그인하세요.</div>
+                    <div class="card-meta">
+                        <span class="badge easy">Easy</span>
+                        <span class="badge unsolved">미해결</span>
+                    </div>
+                </div>
+                <div class="challenge-card" onclick="location.href='challenge2/'">
+                    <div class="card-icon"><i class="fas fa-search"></i></div>
+                    <div class="card-title">검색 기능 우회</div>
+                    <div class="card-desc">검색 기능에서 SQL Injection을 통해 숨겨진 데이터를 찾으세요.</div>
+                    <div class="card-meta">
+                        <span class="badge medium">Medium</span>
+                        <span class="badge unsolved">미해결</span>
+                    </div>
+                </div>
+                <div class="challenge-card" onclick="location.href='challenge3/'">
+                    <div class="card-icon"><i class="fas fa-database"></i></div>
+                    <div class="card-title">데이터베이스 정보</div>
+                    <div class="card-desc">데이터베이스의 스키마 정보를 추출하여 테이블 구조를 파악하세요.</div>
+                    <div class="card-meta">
+                        <span class="badge hard">Hard</span>
+                        <span class="badge unsolved">미해결</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 사이드 가이드/진행상황 -->
+        <aside class="side-panel">
+            <div class="side-tabs">
+                <button class="side-tab active" data-tab="guide">가이드</button>
+                <button class="side-tab" data-tab="progress">진행상황</button>
+            </div>
+            <div class="side-content" id="sideGuide">
+                <h3><i class="fas fa-info-circle"></i> SQL Injection 가이드</h3>
+                    <div class="guide-title">주요 기법:</div>
+                    <ul class="guide-list">
+                        <li>로그인엔 논리 연산자가 쓸모 있다더라…</li>
+                        <li>UNION으로 검색 결과를 합칠 수 있대...</li>
+                        <li>DB에 어떤 테이블이 있는지 알 수 있다던데..?</li>
+                        <li>에러 메시지에 단서가 있을지도…?</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="side-content" id="sideProgress" style="display:none;">
+                <h3><i class="fas fa-trophy"></i> 진행 상황</h3>
+                <div class="progress-block">
+                    <div class="progress-label"><span id="progressText">0/3 해결</span></div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                    </div>
+                    <small class="progress-desc">SQL Injection 마스터가 되기까지...</small>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <script>
+        // 사이드 탭 전환
+        document.querySelectorAll('.side-tab').forEach(btn => {
+            btn.onclick = function() {
+                document.querySelectorAll('.side-tab').forEach(b=>b.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('sideGuide').style.display = btn.dataset.tab==='guide' ? 'block' : 'none';
+                document.getElementById('sideProgress').style.display = btn.dataset.tab==='progress' ? 'block' : 'none';
+            }
+        });
+        // 다크/라이트 토글
+        document.getElementById('themeToggle').onclick = function() {
+            document.body.classList.toggle('dark');
+            this.innerHTML = document.body.classList.contains('dark') ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        }
+        // 진행상황(더미)
+        // 실제로는 /api/progress에서 받아서 업데이트
+        // document.getElementById('progressText').textContent = '1/4 해결';
+        // document.getElementById('progressBar').style.width = '25%';
+    </script>
+</body>
+</html>

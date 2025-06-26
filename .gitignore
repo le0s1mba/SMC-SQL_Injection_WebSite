@@ -1,0 +1,33 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# 환경설정
+.env
+.env.*
+
+# 운영체제별
+.DS_Store
+Thumbs.db
+
+# 로그
+logs/
+*.log
+
+# 기타
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# 빌드 산출물
+/dist/
+/build/
+
+# 테스트 커버리지
+coverage/
+
+# 기타 백업 파일
+*~ 

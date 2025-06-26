@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Injection - 검색 기능 우회</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        .challenge-container { max-width: 600px; margin: 0 auto; }
+        .challenge-box { background: #fff; border-radius: 18px; box-shadow: 0 4px 24px 0 rgba(84,9,218,0.10); padding: 36px 32px 32px 32px; margin-top: 32px; }
+        .challenge-title { font-size: 1.3rem; font-weight: 800; color: #5409DA; margin-bottom: 18px; text-align: center; }
+        .form-label { color: #4E71FF; font-weight: 600; margin-bottom: 6px; }
+        .form-input { width: 100%; padding: 14px; border: 2px solid #8DD8FF; border-radius: 8px; font-size: 1rem; margin-bottom: 16px; background: #f8faff; color: #5409DA; transition: border 0.2s, box-shadow 0.2s; }
+        .form-input:focus { border-color: #5409DA; outline: none; box-shadow: 0 0 0 2px #8DD8FF; }
+        .action-btn { background: #5409DA; color: #fff; border: none; border-radius: 8px; padding: 14px 0; font-size: 1.1rem; font-weight: 700; width: 100%; cursor: pointer; transition: background 0.2s, transform 0.2s; margin-top: 8px; }
+        .action-btn:hover { background: #4E71FF; transform: translateY(-2px) scale(1.03); }
+        .result-area { margin-top: 20px; background: #f3f7ff; border-radius: 8px; padding: 18px 16px; color: #5409DA; box-shadow: 0 2px 8px 0 #8DD8FF22; display: none; }
+        .flag-container { background: #5409DA; color: #fff; border-radius: 12px; margin: 32px 0 0 0; padding: 24px 0; text-align: center; font-size: 1.3rem; font-weight: 700; letter-spacing: 1px; box-shadow: 0 4px 24px 0 #5409DA22; }
+        .flag { font-size: 1.2rem; color: #fff; background: #4E71FF; border-radius: 8px; padding: 10px 18px; margin-top: 12px; display: inline-block; }
+        .source-btn { margin: 32px auto 0 auto; display: block; background: #fff; color: #5409DA; border: 2px solid #5409DA; border-radius: 8px; font-weight: 700; font-size: 1rem; padding: 10px 28px; cursor: pointer; transition: background 0.2s, color 0.2s, border 0.2s; }
+        .source-btn:hover { background: #5409DA; color: #fff; }
+        .modal-bg { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(30, 20, 60, 0.75); justify-content: center; align-items: center; }
+        .modal-bg.active { display: flex; }
+        .modal { background: #181c2f; color: #fff; border-radius: 14px; max-width: 90vw; width: 540px; max-height: 80vh; overflow: auto; box-shadow: 0 8px 32px 0 #5409DA55; padding: 32px 24px 24px 24px; position: relative; }
+        .modal-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 18px; color: #8DD8FF; }
+        .modal-close { position: absolute; top: 18px; right: 18px; background: none; border: none; color: #8DD8FF; font-size: 1.5rem; cursor: pointer; }
+        pre.code-block { background: #23263a; color: #8DD8FF; border-radius: 8px; padding: 18px 12px; font-size: 0.98rem; font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace; overflow-x: auto; margin: 0; }
+        .hint { background: #f8faff; border-left: 4px solid #5409DA; padding: 16px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+        .hint h4 { color: #5409DA; margin: 0 0 8px 0; }
+        .hint p { margin: 0; color: #666; }
+    </style>
+</head>
+<body>
+    <nav class="main-nav">
+        <div class="nav-inner">
+            <div class="nav-logo">🔍 SQL Injection CTF</div>
+            <div class="nav-actions">
+                <a href="../index.html" class="back-btn" style="color: #fff;">← 메인으로</a>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <header>
+            <h1 style="color: #fff;">SQL Injection - 검색 기능 우회</h1>
+            <p style="color: #fff;">취약한 검색 쿼리를 우회하여 숨겨진 데이터를 찾아보세요.</p>
+        </header>        
+
+        <div class="challenge-container">
+            <div class="challenge-box">
+                <div class="challenge-title">게시글 검색</div>
+                <form id="searchForm">
+                    <label for="search" class="form-label">검색어</label>
+                    <input type="text" id="search" class="form-input" placeholder="SQL Injection 페이로드를 입력하세요...">
+                    <button type="submit" class="action-btn">검색 실행</button>
+                </form>
+                <div id="messageArea"></div>
+                <div id="searchResult" class="result-area">
+                    <h3>검색 결과</h3>
+                    <div id="searchContent"></div>
+                </div>
+            </div>
+        </div>
+
+        <button class="source-btn" id="showSourceBtn">소스코드 보기</button>
+        
+        <div class="modal-bg" id="modalBg">
+            <div class="modal">
+                <button class="modal-close" id="closeModalBtn">&times;</button>
+                <div class="modal-title">문제 소스코드 (Node.js/Express)</div>
+                <pre class="code-block">// 취약한 검색 API (SQLi)
+function detectFlag(posts) {
+    if (!Array.isArray(posts)) return false;
+    for (let post of posts) {
+        if (post && typeof post === 'object') {
+            for (let key in post) {
+                if (post[key] && typeof post[key] === 'string' && post[key] === 'Clear') {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+router.post('/search', async (req, res) => {
+    const { search } = req.body;
+    const keyword = search;
+    // 1단계 페이로드 필터링
+    if (!keyword || keyword.match(/(#|or|and)/i)) {
+        return res.json({ success: false, message: '입력값이 필터링에 의해 차단되었습니다.' });
+    }
+    let conn;
+    try {
+        conn = await pool.getConnection();
+        // 취약한 SQL 쿼리 (실제로는 절대 이렇게 하면 안됨!)
+        const query = `SELECT * FROM posts WHERE title = '${keyword}'`;
+        let posts = await conn.query(query);
+        if (!Array.isArray(posts)) {
+            posts = [posts];
+        }
+        // 플래그 감지
+        const flagDetected = detectFlag(posts);
+        if (flagDetected) {
+            // 'Clear'가 포함된 post는 결과에서 제외
+            const filteredPosts = posts.filter(post => {
+                for (let key in post) {
+                    if (post[key] && typeof post[key] === 'string' && post[key] === 'Clear') {
+                        return false;
+                    }
+                }
+                return true;
+            });
+            res.json({ 
+                success: true, 
+                posts: filteredPosts,
+                flag: 'Clear',
+                message: '🎉 검색 우회 성공! SQL Injection이 성공했습니다.'
+            });
+        } else {
+            res.json({ success: true, posts });
+        }
+    } catch (err) {
+        let errorMessage;
+        if (err.errno === 1064 || err.code === 'ER_PARSE_ERROR' || err.code === 'ER_SYNTAX_ERROR') {
+            errorMessage = 'SQL 문법 오류가 발생했습니다. 쿼리 구문을 확인해주세요.';
+        } else if (err.errno === 1146 || err.code === 'ER_NO_SUCH_TABLE') {
+            errorMessage = '해당 테이블이 존재하지 않습니다.';
+        } else if (err.errno === 1054 || err.code === 'ER_BAD_FIELD_ERROR') {
+            errorMessage = '존재하지 않는 컬럼입니다.';
+        } else if (err.errno === 1045 || err.code === 'ER_ACCESS_DENIED_ERROR') {
+            errorMessage = '데이터베이스 접근 권한이 없습니다.';
+        } else if (err.errno === 2006 || err.code === 'ER_CONNECTION_LOST') {
+            errorMessage = '데이터베이스 연결이 끊어졌습니다.';
+        } else if (err.errno === 1062 || err.code === 'ER_DUP_ENTRY') {
+            errorMessage = '중복된 데이터가 존재합니다.';
+        } else if (err.errno === 1264 || err.code === 'ER_DATA_TOO_LONG') {
+            errorMessage = '입력된 데이터가 너무 깁니다.';
+        } else if (err.errno === 1136 || err.code === 'ER_WRONG_VALUE_COUNT') {
+            errorMessage = '컬럼 수와 값의 수가 일치하지 않습니다.';
+        } else if (err.errno === 1365 || err.code === 'ER_DIVISION_BY_ZERO') {
+            errorMessage = '0으로 나누기 오류가 발생했습니다.';
+        } else if (err.errno === 1242 || err.code === 'ER_SUBQUERY_NO_1_ROW') {
+            errorMessage = '서브쿼리가 2개 이상의 행을 반환했습니다.';
+        } else {
+            errorMessage = '데이터베이스 오류가 발생했습니다.';
+        }
+        if (err.sqlMessage) {
+            errorMessage += `\n(DB 오류: ${err.sqlMessage})`;
+        }
+        res.json({ success: false, message: errorMessage });
+    } finally {
+        if (conn) conn.release();
+    }
+});</pre>
+            </div>
+        </div>
+
+        <div id="flag-container" class="flag-container" style="display: none;">
+            <h2>🎉 성공!</h2>
+            <div class="flag">
+                <span id="flag-text"></span>
+            </div>
+        </div>
+        
+        <!-- 문제 해결 상태 표시 (푸터) -->
+        <div id="footer-status" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #5409DA; color: #fff; padding: 15px; text-align: center; font-weight: bold; z-index: 1000;">
+            <i class="fas fa-check-circle"></i> 문제 해결 완료!
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('searchForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const search = document.getElementById('search').value;
+            const resultArea = document.getElementById('searchResult');
+            const resultContent = document.getElementById('searchContent');
+            const messageArea = document.getElementById('messageArea');
+            messageArea.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/challenge2/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ search })
+                });
+                const data = await response.json();
+                
+                resultArea.style.display = 'block';
+                
+                if (data.message) {
+                    messageArea.innerHTML = `<div style='color:#00bb77;font-weight:bold;margin-bottom:15px;'>${data.message}</div>`;
+                } else {
+                    messageArea.innerHTML = '';
+                }
+                
+                if (data.flag) {
+                    document.getElementById('flag-container').style.display = 'block';
+                    document.getElementById('flag-text').textContent = '축하합니다! 문제를 해결했습니다!';
+                    document.getElementById('footer-status').style.display = 'block';
+                    resultContent.innerHTML = '';
+                } else if (data.posts && data.posts.length > 0) {
+                    resultContent.innerHTML = `
+                        <div style='color:#5409DA;font-weight:bold;margin-bottom:15px;'>검색 결과 (${data.posts.length}개)</div>
+                        ${data.posts.map(post => 
+                            `<div style='background:#f8faff;padding:10px 0 10px 10px;border-radius:6px;margin-bottom:10px;'>
+                                <b style='color:#5409DA;'>${post.title || '제목 없음'}</b><br>
+                                <span style='color:#333;'>${post.content || '내용 없음'}</span>
+                                ${post.author ? `<br><small style='color:#666;'>작성자: ${post.author}</small>` : ''}
+                            </div>`
+                        ).join('')}
+                    `;
+                } else {
+                    resultContent.innerHTML = '';
+                }
+            } catch (error) {
+                resultArea.style.display = 'block';
+                messageArea.innerHTML = `<div style='color:#ff4444;font-weight:bold;'>❌ 검색 중 오류가 발생했습니다.</div>`;
+                resultContent.innerHTML = '';
+            }
+        });
+
+        // 소스코드 모달
+        const showSourceBtn = document.getElementById('showSourceBtn');
+        const modalBg = document.getElementById('modalBg');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        showSourceBtn.onclick = () => { modalBg.classList.add('active'); };
+        closeModalBtn.onclick = () => { modalBg.classList.remove('active'); };
+        modalBg.onclick = (e) => { if (e.target === modalBg) modalBg.classList.remove('active'); };
+    </script>
+</body>
+</html> 
